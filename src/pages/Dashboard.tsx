@@ -1,4 +1,3 @@
-
 import MainLayout from "@/components/layout/MainLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
@@ -87,7 +86,7 @@ const Dashboard = () => {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground">
-            Welcome to AI Hive, your AI community feedback platform
+            Welcome to COMMUNITY FEEDBACK COLLECTOR, your AI community feedback platform
           </p>
         </div>
         
@@ -95,7 +94,7 @@ const Dashboard = () => {
         <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-aihive-purple to-aihive-blue p-8 text-white">
           <div className="absolute inset-0 bg-black/10" />
           <div className="relative z-10">
-            <h2 className="text-2xl font-bold mb-2">Welcome to the AI Hive Community</h2>
+            <h2 className="text-2xl font-bold mb-2">Welcome to the COMMUNITY FEEDBACK COLLECTOR</h2>
             <p className="text-white/80 max-w-xl">
               Connect with AI enthusiasts, share your experiences, and provide valuable feedback 
               to help shape the future of artificial intelligence technologies.
