@@ -38,7 +38,7 @@ const SignupForm = ({ onToggleForm }: SignupFormProps) => {
       if (success) {
         toast({
           title: "Account created",
-          description: "Welcome to AI Hive!",
+          description: "Welcome to COMMUNITY FEEDBACK COLLECTOR!",
         });
       } else {
         toast({

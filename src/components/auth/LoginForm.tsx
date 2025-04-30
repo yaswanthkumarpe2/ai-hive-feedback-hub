@@ -27,7 +27,7 @@ const LoginForm = ({ onToggleForm }: LoginFormProps) => {
       if (success) {
         toast({
           title: "Login successful",
-          description: "Welcome back to AI Hive!",
+          description: "Welcome back to COMMUNITY FEEDBACK COLLECTOR!",
         });
       } else {
         toast({

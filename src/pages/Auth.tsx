@@ -33,9 +33,9 @@ const Auth = () => {
       <div className="w-full max-w-md text-center">
         <div className="mb-6">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary">
-            <span className="text-xl font-bold text-primary-foreground">AH</span>
+            <span className="text-xl font-bold text-primary-foreground">CFC</span>
           </div>
-          <h2 className="mt-4 text-3xl font-extrabold text-foreground">AI Hive</h2>
+          <h2 className="mt-4 text-3xl font-extrabold text-foreground">COMMUNITY FEEDBACK COLLECTOR</h2>
           <p className="mt-2 text-sm text-muted-foreground">
             Your community feedback hub for AI topics
           </p>
