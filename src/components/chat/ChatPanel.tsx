@@ -1,11 +1,11 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import ChatMessage, { MessageType } from "./ChatMessage";
+import ChatMessage from "./ChatMessage";
+import { Message } from "./types";
 import { nanoid } from "nanoid";
 
 interface ChatPanelProps {
@@ -30,12 +30,11 @@ const generateBotResponse = async (message: string): Promise<string> => {
 };
 
 const ChatPanel = ({ isOpen, onNewMessage }: ChatPanelProps) => {
-  const [messages, setMessages] = useState<MessageType[]>([
+  const [messages, setMessages] = useState<Message[]>([
     {
       id: nanoid(),
-      content: "Hello! I'm your Community Feedback Assistant. How can I help you today?",
+      text: "Hello! I'm your Community Feedback Assistant. How can I help you today?",
       sender: "bot",
-      timestamp: Date.now(),
     },
   ]);
   
@@ -63,11 +62,10 @@ const ChatPanel = ({ isOpen, onNewMessage }: ChatPanelProps) => {
     
     if (!inputValue.trim() || isSubmitting) return;
     
-    const userMessage: MessageType = {
+    const userMessage: Message = {
       id: nanoid(),
-      content: inputValue.trim(),
+      text: inputValue.trim(),
       sender: "user",
-      timestamp: Date.now(),
     };
     
     setMessages((prev) => [...prev, userMessage]);
@@ -76,13 +74,12 @@ const ChatPanel = ({ isOpen, onNewMessage }: ChatPanelProps) => {
     
     try {
       // Get bot response
-      const botResponse = await generateBotResponse(userMessage.content);
+      const botResponse = await generateBotResponse(userMessage.text);
       
-      const botMessage: MessageType = {
+      const botMessage: Message = {
         id: nanoid(),
-        content: botResponse,
+        text: botResponse,
         sender: "bot",
-        timestamp: Date.now(),
       };
       
       setMessages((prev) => [...prev, botMessage]);
@@ -90,11 +87,10 @@ const ChatPanel = ({ isOpen, onNewMessage }: ChatPanelProps) => {
     } catch (error) {
       console.error("Error generating response:", error);
       
-      const errorMessage: MessageType = {
+      const errorMessage: Message = {
         id: nanoid(),
-        content: "Sorry, I'm having trouble responding right now. Please try again later.",
+        text: "Sorry, I'm having trouble responding right now. Please try again later.",
         sender: "bot",
-        timestamp: Date.now(),
       };
       
       setMessages((prev) => [...prev, errorMessage]);
