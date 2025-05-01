@@ -55,7 +55,8 @@ const ChatPanel = ({ isOpen, onNewMessage }: ChatPanelProps) => {
     if (!apiKey) return "Please provide a valid Gemini API key to continue.";
 
     try {
-      const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent", {
+      // Updated model name from gemini-pro to gemini-1.5-pro
+      const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
