@@ -53,9 +53,9 @@ const Sidebar = () => {
         <div className="flex h-14 items-center border-b px-4">
           <Link to="/dashboard" className="flex items-center gap-2 font-semibold">
             <div className="flex h-6 w-6 items-center justify-center rounded bg-primary">
-              <span className="text-xs font-bold text-primary-foreground">AH</span>
+              <span className="text-xs font-bold text-primary-foreground">CFC</span>
             </div>
-            <span className="text-lg">AI Hive</span>
+            <span className="text-lg">COMMUNITY FEEDBACK COLLECTOR</span>
           </Link>
         </div>
         <nav className="flex-1 overflow-auto py-4">
