@@ -2,16 +2,10 @@
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
-
-export type MessageType = {
-  id: string;
-  content: string;
-  sender: "user" | "bot";
-  timestamp: number;
-};
+import { Message } from "./types";
 
 interface ChatMessageProps {
-  message: MessageType;
+  message: Message;
 }
 
 const ChatMessage = ({ message }: ChatMessageProps) => {
@@ -21,7 +15,7 @@ const ChatMessage = ({ message }: ChatMessageProps) => {
   return (
     <div
       className={cn(
-        "flex w-full gap-2 px-4",
+        "flex w-full gap-2",
         isUser ? "justify-end" : "justify-start"
       )}
     >
@@ -33,19 +27,13 @@ const ChatMessage = ({ message }: ChatMessageProps) => {
       
       <div
         className={cn(
-          "max-w-[75%] rounded-lg px-4 py-2 text-sm",
+          "max-w-[80%] rounded-lg px-3 py-2 text-sm",
           isUser
             ? "bg-primary text-primary-foreground"
             : "bg-muted text-foreground"
         )}
       >
-        <p className="whitespace-pre-wrap">{message.content}</p>
-        <p className="mt-1 text-right text-[10px] opacity-70">
-          {new Date(message.timestamp).toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
-        </p>
+        <p className="whitespace-pre-wrap">{message.text}</p>
       </div>
       
       {isUser && (
