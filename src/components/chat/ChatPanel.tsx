@@ -1,39 +1,24 @@
+
 import { useState, useRef, useEffect } from "react";
 import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ChatMessage from "./ChatMessage";
 import { Message } from "./types";
 import { nanoid } from "nanoid";
+import { toast } from "sonner";
 
 interface ChatPanelProps {
   isOpen: boolean;
   onNewMessage: () => void;
 }
 
-const generateBotResponse = async (message: string): Promise<string> => {
-  // Simulate API call delay
-  await new Promise((resolve) => setTimeout(resolve, 600));
-  
-  // Sample responses
-  const responses = [
-    `Thanks for your message! Based on your query about "${message}", I can provide some information about community feedback. Is there something specific about AI technologies that you'd like to discuss?`,
-    `That's an interesting question about "${message}". Community feedback is crucial for improving AI systems. Would you like to know more about specific areas where feedback has made a difference?`,
-    `I understand you're interested in "${message}". The Community Feedback Collector helps gather insights from users like you to enhance AI systems and ensure they meet community needs.`,
-    `Your interest in "${message}" is noted. From our community feedback data, this is a topic many users have opinions about. Would you like to contribute your specific thoughts on this area?`,
-  ];
-  
-  // Return a random response
-  return responses[Math.floor(Math.random() * responses.length)];
-};
-
 const ChatPanel = ({ isOpen, onNewMessage }: ChatPanelProps) => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: nanoid(),
-      text: "Hello! I'm your Community Feedback Assistant. How can I help you today?",
+      text: "Hello! I'm your Community Feedback Assistant powered by Gemini AI. How can I help you today?",
       sender: "bot",
     },
   ]);
@@ -42,6 +27,8 @@ const ChatPanel = ({ isOpen, onNewMessage }: ChatPanelProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const [apiKey, setApiKey] = useState<string | null>(localStorage.getItem("gemini-api-key"));
+  const [showApiKeyInput, setShowApiKeyInput] = useState(!apiKey);
 
   useEffect(() => {
     if (isOpen && inputRef.current) {
@@ -57,10 +44,70 @@ const ChatPanel = ({ isOpen, onNewMessage }: ChatPanelProps) => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const handleSaveApiKey = (key: string) => {
+    localStorage.setItem("gemini-api-key", key);
+    setApiKey(key);
+    setShowApiKeyInput(false);
+    toast.success("API key saved! You can now use the chatbot.");
+  };
+
+  const generateGeminiResponse = async (prompt: string): Promise<string> => {
+    if (!apiKey) return "Please provide a valid Gemini API key to continue.";
+
+    try {
+      const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey,
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: "user",
+              parts: [
+                { 
+                  text: `As a community feedback assistant for an AI platform, respond to the following user message: "${prompt}"`
+                }
+              ]
+            }
+          ],
+          generationConfig: {
+            temperature: 0.7,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 1024,
+          },
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.error) {
+        console.error("Gemini API error:", data.error);
+        return `Error: ${data.error.message || "Failed to generate response"}`;
+      }
+
+      if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
+        return data.candidates[0].content.parts[0].text;
+      } else {
+        return "I couldn't generate a response. Please try again.";
+      }
+    } catch (error) {
+      console.error("Error calling Gemini API:", error);
+      return "Sorry, I encountered an error while processing your request. Please try again later.";
+    }
+  };
+
   const handleSendMessage = async (e?: React.FormEvent) => {
     e?.preventDefault();
     
     if (!inputValue.trim() || isSubmitting) return;
+
+    if (!apiKey) {
+      setShowApiKeyInput(true);
+      return;
+    }
     
     const userMessage: Message = {
       id: nanoid(),
@@ -73,8 +120,8 @@ const ChatPanel = ({ isOpen, onNewMessage }: ChatPanelProps) => {
     setIsSubmitting(true);
     
     try {
-      // Get bot response
-      const botResponse = await generateBotResponse(userMessage.text);
+      // Get bot response from Gemini AI
+      const botResponse = await generateGeminiResponse(userMessage.text);
       
       const botMessage: Message = {
         id: nanoid(),
@@ -120,55 +167,82 @@ const ChatPanel = ({ isOpen, onNewMessage }: ChatPanelProps) => {
           </div>
           <div>
             <h3 className="text-sm font-medium">COMMUNITY FEEDBACK COLLECTOR</h3>
-            <p className="text-xs text-muted-foreground">AI Assistant</p>
+            <p className="text-xs text-muted-foreground">Gemini AI Assistant</p>
           </div>
         </div>
       </div>
 
-      <ScrollArea className="flex-1 px-1 py-4">
-        <div className="flex flex-col gap-4">
-          {messages.map((message) => (
-            <ChatMessage key={message.id} message={message} />
-          ))}
-          {isSubmitting && (
-            <div className="flex gap-2 px-4">
-              <div className="h-8 w-8 flex-shrink-0" />
-              <div className="flex gap-1 rounded-lg bg-muted px-4 py-2">
-                <span className="animate-bounce">•</span>
-                <span className="animate-bounce" style={{ animationDelay: "0.2s" }}>
-                  •
-                </span>
-                <span className="animate-bounce" style={{ animationDelay: "0.4s" }}>
-                  •
-                </span>
-              </div>
-            </div>
-          )}
-          <div ref={messagesEndRef} />
+      {showApiKeyInput ? (
+        <div className="p-4 space-y-4 flex-1">
+          <p className="text-sm">To use the Gemini AI chatbot, please enter your API key:</p>
+          <div className="space-y-2">
+            <input 
+              type="password"
+              value={apiKey || ''}
+              onChange={(e) => setApiKey(e.target.value)}
+              className="w-full p-2 border rounded-md"
+              placeholder="Enter your Gemini API key"
+            />
+            <Button 
+              onClick={() => apiKey && handleSaveApiKey(apiKey)}
+              disabled={!apiKey}
+              className="w-full"
+            >
+              Save API Key
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              You can get your API key from <a href="https://makersuite.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="underline">Google AI Studio</a>
+            </p>
+          </div>
         </div>
-      </ScrollArea>
+      ) : (
+        <>
+          <ScrollArea className="flex-1 px-1 py-4">
+            <div className="flex flex-col gap-4">
+              {messages.map((message) => (
+                <ChatMessage key={message.id} message={message} />
+              ))}
+              {isSubmitting && (
+                <div className="flex gap-2 px-4">
+                  <div className="h-8 w-8 flex-shrink-0" />
+                  <div className="flex gap-1 rounded-lg bg-muted px-4 py-2">
+                    <span className="animate-bounce">•</span>
+                    <span className="animate-bounce" style={{ animationDelay: "0.2s" }}>
+                      •
+                    </span>
+                    <span className="animate-bounce" style={{ animationDelay: "0.4s" }}>
+                      •
+                    </span>
+                  </div>
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+          </ScrollArea>
 
-      <form
-        onSubmit={handleSendMessage}
-        className="flex items-end gap-2 border-t p-3"
-      >
-        <Textarea
-          ref={inputRef}
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onKeyDown={handleKeyPress}
-          placeholder="Type your message..."
-          className="min-h-10 max-h-32 resize-none"
-          disabled={isSubmitting}
-        />
-        <Button
-          type="submit"
-          size="icon"
-          disabled={!inputValue.trim() || isSubmitting}
-        >
-          <Send className="h-4 w-4" />
-        </Button>
-      </form>
+          <form
+            onSubmit={handleSendMessage}
+            className="flex items-end gap-2 border-t p-3"
+          >
+            <Textarea
+              ref={inputRef}
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={handleKeyPress}
+              placeholder="Type your message..."
+              className="min-h-10 max-h-32 resize-none"
+              disabled={isSubmitting}
+            />
+            <Button
+              type="submit"
+              size="icon"
+              disabled={!inputValue.trim() || isSubmitting}
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          </form>
+        </>
+      )}
     </div>
   );
 };

@@ -16,15 +16,15 @@ const ChatBot: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
-      text: "Hello! I'm your community feedback assistant. How can I help you today?",
+      text: "Hello! I'm your community feedback assistant powered by Gemini AI. How can I help you today?",
       sender: "bot",
     },
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
-  const [feedbackData, setFeedbackData] = useState<any[]>([]);
-  const [feedbackLoaded, setFeedbackLoaded] = useState(false);
-
+  const [apiKey, setApiKey] = useState<string | null>(localStorage.getItem("gemini-api-key"));
+  const [showApiKeyInput, setShowApiKeyInput] = useState(!apiKey);
+  
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -33,30 +33,80 @@ const ChatBot: React.FC = () => {
     }
   }, [messages]);
 
-  useEffect(() => {
-    if (user && isOpen && !feedbackLoaded) {
-      const loadFeedback = async () => {
-        try {
-          setFeedbackLoaded(true);
-        } catch (error) {
-          console.error("Error loading feedback data:", error);
-        }
-      };
-      loadFeedback();
-    }
-  }, [user, isOpen, feedbackLoaded]);
+  const handleSaveApiKey = (key: string) => {
+    localStorage.setItem("gemini-api-key", key);
+    setApiKey(key);
+    setShowApiKeyInput(false);
+    toast.success("API key saved! You can now use the chatbot.");
+  };
 
   useEffect(() => {
-    // when chat opens, automatically send "hi" once
-    if (isOpen) {
-      handleSendMessage("hi");
+    // Send welcome message when chat opens
+    if (isOpen && !showApiKeyInput) {
+      // Only send greeting if we have the API key
+      if (messages.length === 1) { // Only has the initial welcome message
+        // No need to send an automatic message - we already have the welcome message
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, messages.length, showApiKeyInput]);
+
+  const generateGeminiResponse = async (prompt: string): Promise<string> => {
+    if (!apiKey) return "Please provide a valid Gemini API key to continue.";
+
+    try {
+      const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey,
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: "user",
+              parts: [
+                { 
+                  text: `As a community feedback assistant for an AI platform, respond to the following user message: "${prompt}"`
+                }
+              ]
+            }
+          ],
+          generationConfig: {
+            temperature: 0.7,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 1024,
+          },
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.error) {
+        console.error("Gemini API error:", data.error);
+        return `Error: ${data.error.message || "Failed to generate response"}`;
+      }
+
+      if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
+        return data.candidates[0].content.parts[0].text;
+      } else {
+        return "I couldn't generate a response. Please try again.";
+      }
+    } catch (error) {
+      console.error("Error calling Gemini API:", error);
+      return "Sorry, I encountered an error while processing your request. Please try again later.";
+    }
+  };
 
   const handleSendMessage = async (customMessage?: string) => {
     const textToSend = customMessage ?? message;
 
     if (!textToSend.trim()) return;
+    
+    if (!apiKey) {
+      setShowApiKeyInput(true);
+      return;
+    }
 
     const newUserMessage: Message = {
       id: Date.now().toString(),
@@ -69,22 +119,11 @@ const ChatBot: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // Simulate API call with mock response
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await generateGeminiResponse(textToSend);
       
-      const botResponses = [
-        "Thanks for your feedback! How else can I assist you with the community feedback system?",
-        "That's interesting! Could you tell me more about your experience with our platform?",
-        "I understand your concerns. The community feedback process is designed to be transparent and effective.",
-        "Great question! The community feedback collector helps gather insights to improve our AI systems.",
-        "I've noted your feedback. Is there anything specific you'd like to know about how feedback is processed?",
-      ];
-      
-      const randomResponse = botResponses[Math.floor(Math.random() * botResponses.length)];
-
       const newBotMessage: Message = {
         id: Date.now().toString() + "-bot",
-        text: randomResponse,
+        text: response,
         sender: "bot",
       };
 
@@ -92,6 +131,14 @@ const ChatBot: React.FC = () => {
     } catch (error) {
       console.error("Error processing message:", error);
       toast.error("Failed to send message.");
+      
+      const errorMessage: Message = {
+        id: Date.now().toString() + "-error",
+        text: "Sorry, I encountered an error. Please try again later.",
+        sender: "bot",
+      };
+      
+      setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }
@@ -129,7 +176,7 @@ const ChatBot: React.FC = () => {
         }`}
       >
         <div className="flex justify-between items-center p-4 border-b bg-primary/5">
-          <h3 className="font-semibold">Community Assistant</h3>
+          <h3 className="font-semibold">Gemini AI Assistant</h3>
           <Button
             variant="ghost"
             className="h-8 w-8 p-0 rounded-full"
@@ -151,21 +198,48 @@ const ChatBot: React.FC = () => {
           </Button>
         </div>
 
-        <ScrollArea className="h-80 p-4" ref={scrollAreaRef}>
-          <div className="flex flex-col gap-3">
-            {messages.map((msg) => (
-              <ChatMessage key={msg.id} message={msg} />
-            ))}
-            {isLoading && <LoadingIndicator />}
+        {showApiKeyInput ? (
+          <div className="p-4 space-y-4">
+            <p className="text-sm">To use the Gemini AI chatbot, please enter your API key:</p>
+            <div className="space-y-2">
+              <input 
+                type="password"
+                value={apiKey || ''}
+                onChange={(e) => setApiKey(e.target.value)}
+                className="w-full p-2 border rounded-md"
+                placeholder="Enter your Gemini API key"
+              />
+              <Button 
+                onClick={() => apiKey && handleSaveApiKey(apiKey)}
+                disabled={!apiKey}
+                className="w-full"
+              >
+                Save API Key
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                You can get your API key from <a href="https://makersuite.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="underline">Google AI Studio</a>
+              </p>
+            </div>
           </div>
-        </ScrollArea>
+        ) : (
+          <>
+            <ScrollArea className="h-80 p-4" ref={scrollAreaRef}>
+              <div className="flex flex-col gap-3">
+                {messages.map((msg) => (
+                  <ChatMessage key={msg.id} message={msg} />
+                ))}
+                {isLoading && <LoadingIndicator />}
+              </div>
+            </ScrollArea>
 
-        <ChatInput
-          message={message}
-          setMessage={setMessage}
-          onSubmit={() => handleSendMessage()}
-          isLoading={isLoading}
-        />
+            <ChatInput
+              message={message}
+              setMessage={setMessage}
+              onSubmit={() => handleSendMessage()}
+              isLoading={isLoading}
+            />
+          </>
+        )}
       </div>
     </>
   );
