@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 
 interface User {
@@ -6,6 +5,8 @@ interface User {
   username: string;
   email: string;
   isAdmin: boolean;
+  avatarUrl?: string; // Added for ChatMessage component
+  displayName?: string; // Added for ChatMessage component
 }
 
 interface AuthContextType {
@@ -47,7 +48,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initializeUsers();
     const savedUser = localStorage.getItem(CURRENT_USER_KEY);
     if (savedUser) {
-      setUser(JSON.parse(savedUser));
+      const parsedUser = JSON.parse(savedUser);
+      // Ensure the user has the required properties
+      if (!parsedUser.displayName) {
+        parsedUser.displayName = parsedUser.username;
+      }
+      if (!parsedUser.avatarUrl) {
+        parsedUser.avatarUrl = `https://ui-avatars.com/api/?name=${parsedUser.username}&background=random`;
+      }
+      setUser(parsedUser);
     }
     setLoading(false);
   }, []);
@@ -73,6 +82,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (foundUser) {
         // Remove password before storing in state
         const { password, ...userWithoutPassword } = foundUser;
+        // Add displayName and avatarUrl if not present
+        if (!userWithoutPassword.displayName) {
+          userWithoutPassword.displayName = userWithoutPassword.username;
+        }
+        if (!userWithoutPassword.avatarUrl) {
+          userWithoutPassword.avatarUrl = `https://ui-avatars.com/api/?name=${userWithoutPassword.username}&background=random`;
+        }
         setUser(userWithoutPassword);
         localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(userWithoutPassword));
         setLoading(false);
@@ -109,6 +125,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email,
         password, // In a real app, this would be hashed
         isAdmin: false,
+        displayName: username,
+        avatarUrl: `https://ui-avatars.com/api/?name=${username}&background=random`,
       };
       
       users.push(newUser);
